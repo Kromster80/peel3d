@@ -21,6 +21,7 @@ type
     procedure LoadFromFile(aFilename: string);
     procedure Move(X,Y: Single);
     procedure Rotate(X,Y: Single);
+    procedure RayIntersect(aRay, aRayVect: TVector3f; out aPoint, aNormal: TVector3f);
     procedure Render;
   end;
 
@@ -52,10 +53,36 @@ begin
 end;
 
 
+procedure TIngot.RayIntersect(aRay, aRayVect: TVector3f; out aPoint, aNormal: TVector3f);
+var
+  I: Integer;
+  A,B,C: TVector3f;
+begin
+  aNormal := Vector3(0,0,0);
+
+  for I := Low(fPolys) to High(fPolys) do
+  begin
+    A.X := fVerts[fPolys[I][0]].X;
+    A.Y := fVerts[fPolys[I][0]].Y;
+    A.Z := fVerts[fPolys[I][0]].Z;
+    B.X := fVerts[fPolys[I][1]].X;
+    B.Y := fVerts[fPolys[I][1]].Y;
+    B.Z := fVerts[fPolys[I][1]].Z;
+    C.X := fVerts[fPolys[I][2]].X;
+    C.Y := fVerts[fPolys[I][2]].Y;
+    C.Z := fVerts[fPolys[I][2]].Z;
+
+    if RayTriangleIntersect(aRay, aRayVect, A, B, C, aPoint, aNormal) then
+      Exit;
+  end;
+
+end;
+
+
 procedure TIngot.Init;
 const
-  HeightDiv = 12;
-  RadiusDiv = 16;
+  HeightDiv = 2;
+  RadiusDiv = 4;
 var
   I,K,J: Integer;
   Ang,X,Y,Z: Single;
@@ -88,7 +115,7 @@ begin
     end;
   end;
 
-  SetLength(fPolys, (HeightDiv * 2) * RadiusDiv * 2 * 3);
+  SetLength(fPolys, (HeightDiv - 1) * 2 * RadiusDiv * 2 + RadiusDiv * 2);
 
   //Caps
   J := 0;
@@ -104,9 +131,9 @@ begin
     Inc(J);
   end;
 
-  for I := -HeightDiv to HeightDiv-1 do
+  for I := -HeightDiv+1 to HeightDiv-2 do
   begin
-    Off := 1 + (I + HeightDiv) * RadiusDiv;
+    Off := 1 + (I + HeightDiv-1) * RadiusDiv;
     for K := 0 to RadiusDiv - 1 do
     begin
       fPolys[J] := Poly3(Off + K, Off + RadiusDiv + K, Off + (K + 1) mod RadiusDiv);
@@ -150,7 +177,7 @@ procedure TIngot.Render;
   begin
     if fRender.IsNormal then
     begin
-      glColor3f(0.8, 1, 0.8);
+      glColor3f(0.6, 0.7, 0.6);
     end
     else
     begin

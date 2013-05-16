@@ -32,6 +32,16 @@ type
   function Vertice(X, Y, Z, nx, ny, nz: Single): TVertice;
   function Poly3(A,B,C: Integer): TPoly3;
 
+  function VectorAdd(const A,B: TVector3f): TVector3f;
+  function VectorSubtract(const A,B: TVector3f): TVector3f;
+  function VectorScale(const A: TVector3f; Scale: Single): TVector3f;
+  function VectorDotProduct(const A,B: TVector3f): Single;
+  function VectorCrossProduct(const A,B : TVector3f): TVector3f;
+  function VectorCombine(const A,B: TVector3f; const Coef: Single): TVector3f;
+
+  function RayTriangleIntersect(const aRayStart, aRayVector, A, B, C: TVector3f; out aPoint, aNormal: TVector3f): Boolean;
+
+
 implementation
 
 
@@ -75,6 +85,90 @@ begin
   Result[0] := A;
   Result[1] := B;
   Result[2] := C;
+end;
+
+
+function VectorAdd(const A,B: TVector3f): TVector3f;
+begin
+  Result.X := A.X + B.X;
+  Result.Y := A.Y + B.Y;
+  Result.Z := A.Z + B.Z;
+end;
+
+
+function VectorSubtract(const A,B: TVector3f): TVector3f;
+begin
+  Result.X := A.X - B.X;
+  Result.Y := A.Y - B.Y;
+  Result.Z := A.Z - B.Z;
+end;
+
+
+function VectorScale(const A: TVector3f; Scale: Single): TVector3f;
+begin
+  Result.X := A.X * Scale;
+  Result.Y := A.Y * Scale;
+  Result.Z := A.Z * Scale;
+end;
+
+
+function VectorDotProduct(const A,B: TVector3f): Single;
+begin
+  Result := A.X * B.X + A.Y * B.Y + A.Z * B.Z;
+end;
+
+
+function VectorCrossProduct(const A,B : TVector3f): TVector3f;
+begin
+  Result.X := A.Y * B.Z - A.Z * B.Y;
+  Result.Y := A.Z * B.X - A.X * B.Z;
+  Result.Z := A.X * B.Y - A.Y * B.X;
+end;
+
+
+function VectorCombine(const A,B: TVector3f; const Coef: Single): TVector3f;
+begin
+  Result.X := A.X + B.X * Coef;
+  Result.Y := A.Y + B.Y * Coef;
+  Result.Z := A.Z + B.Z * Coef;
+end;
+
+
+function RayTriangleIntersect(const aRayStart, aRayVector, A, B, C: TVector3f; out aPoint, aNormal: TVector3f): Boolean;
+var
+  V1, V2, PV, QV, TV: TVector3f;
+  T, U, V, Det, InvDet: Single;
+begin
+  Result := False;
+
+  V1 := VectorSubtract(B, A);
+  V2 := VectorSubtract(C, A);
+  PV := VectorCrossProduct(aRayVector, V2);
+  Det := VectorDotProduct(V1, PV);
+
+  //Skip if Ray is parallel to triangle
+  if Abs(Det) < 0.00001 then
+    Exit;
+
+  InvDet := 1 / Det;
+  TV := VectorSubtract(aRayStart, A);
+  U := VectorDotProduct(TV, PV) * InvDet;
+
+  if (U >= 0) and (U <= 1) then
+  begin
+    QV := VectorCrossProduct(TV, V1);
+    V := VectorDotProduct(aRayVector, QV) * InvDet;
+    if (V >= 0) and (U + V <= 1) then
+    begin
+      T := VectorDotProduct(V2, QV) * InvDet;
+      if T > 0 then
+      begin
+        aPoint := VectorCombine(aRayStart, aRayVector, T);
+        aNormal := VectorCrossProduct(V1, V2);
+        Result := True;
+      end;
+    end;
+  end;
 end;
 
 

@@ -69,6 +69,8 @@ begin
 
   fRender.Switch(rmDeck);
   fDeck.Render;
+
+  fCursor.Render;
 end;
 
 

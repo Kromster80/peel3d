@@ -1,7 +1,7 @@
 unit Unit_Cursor;
 interface
 uses Classes, Controls, dglOpenGL,
-  Unit_ColorCoder, Unit_Controls, Unit_Pieces;
+  Unit_ColorCoder, Unit_Controls, Unit_Pieces, Unit_Vector;
 
 
 type
@@ -15,6 +15,9 @@ type
     fMouseArea: TMouseArea;
     fPrevX, fPrevY: Single;
     fPickedPiece: TPiece;
+
+    fIngotPoint: TVector3f;
+    fIngotNormal: TVector3f;
   public
     CodeBelow: TColorCodeId;
     constructor Create;
@@ -76,6 +79,8 @@ end;
 
 
 procedure TPCursor.MouseMove(Shift: TShiftState; X, Y: Integer);
+var
+  RayStart, RayEnd: TVector3f;
 begin
   fX := X;
   fY := Y;
@@ -88,8 +93,17 @@ begin
       fMouseArea := maDeck;
 
   case fMouseArea of
-    maIngot:  if (ssLeft in Shift) and (CodeBelow.Code in [ccNone, ccIngot]) then
-                fIngot.Rotate(-(fPrevX - fX)/1, -(fPrevY - fY)/1);
+    maIngot:  begin
+                if (ssLeft in Shift) and (CodeBelow.Code in [ccNone, ccIngot]) then
+                  fIngot.Rotate(-(fPrevX - fX)/1, -(fPrevY - fY)/1);
+
+                if (CodeBelow.Code = ccIngot) then
+                begin
+                  fRender.GetRay(fX, fY, RayStart, RayEnd);
+                  fIngot.RayIntersect(RayStart, RayEnd, fIngotPoint, fIngotNormal);
+                end;
+              end;
+
     maDeck:   if Shift = [] then
               begin
                 if CodeBelow.Code = ccPiece then
@@ -106,19 +120,34 @@ end;
 
 procedure TPCursor.Render;
 var
-  I: Integer;
+  V: TVector3f;
 begin
-  glPushMatrix;
+  if (fMouseArea = maDeck)
+  or ((fMouseArea = maIngot) and (CodeBelow.Code = ccNone)) then
+  begin
+    if fPickedPiece = nil then Exit;
 
-    glScalef(150, 150, 150);
+    fRender.Switch(rmDeck);
+    glPushMatrix;
 
-    if fPickedPiece <> nil then
-    begin
       glTranslatef(fX, fY, 0);
+      glScalef(150, 150, 150);
       fPickedPiece.Render2D;
-    end;
 
-  glPopMatrix;
+    glPopMatrix;
+  end;
+
+    if fIngotNormal.Y <> 0 then
+    begin
+      fRender.Switch(rm3D);
+
+      V := VectorAdd(fIngotPoint, VectorScale(fIngotNormal, 1));
+      glColor4f(1,1,0,1);
+      glBegin(GL_LINES);
+        glVertex3fv(@fIngotPoint);
+        glVertex3fv(@V);
+      glEnd;
+    end;
 end;
 
 

@@ -1,7 +1,7 @@
 unit Unit_Render;
 interface
 uses Classes, Controls, dglOpenGL, KromOGLUtils, KromUtils, Math, Windows, SysUtils,
-  Unit_ColorCoder;
+  Unit_ColorCoder, Unit_Vector;
 
 type
   TRenderMode = (rm2D, rmDeck, rm3D);
@@ -16,6 +16,10 @@ type
     fOpenGL_Vendor, fOpenGL_Renderer, fOpenGL_Version: AnsiString;
     fWidth, fHeight: Word;
 
+    fViewport: TVector4i; //Store the viewport properties
+    fProjection: TMatrix4d; //to use with glUnProject
+    fModelview: TMatrix4d;
+
     function GetVersionInfo: string;
   public
     IsNormal: Boolean;
@@ -27,6 +31,7 @@ type
     procedure Resize(aWidth, aHeight: Integer);
     property VersionInfo: string read GetVersionInfo;
     function CodeBelow(X,Y: Integer): TColorCodeId;
+    procedure GetRay(aScreenX, aScreenY: Integer; out RayStart, RayEnd: TVector3f);
     procedure BeginFrame;
     procedure Switch(aMode: TRenderMode);
     procedure EndFrame;
@@ -124,8 +129,16 @@ begin
   glMatrixMode(GL_MODELVIEW);
   glLoadIdentity;
 
+
   if aMode = rm3D then
+  begin
     glTranslatef(0, 0, -1);
+
+    //Remember the matrices to use with gluUnproject later on
+    glGetIntegerv(GL_VIEWPORT, @fViewport);
+    glGetDoublev(GL_PROJECTION_MATRIX, @fProjection);
+    glGetDoublev(GL_MODELVIEW_MATRIX, @fModelview);
+  end;
 end;
 
 
@@ -172,6 +185,28 @@ begin
     PrevFrameTimes := 0;
     FrameCount := 0;
   end;
+end;
+
+
+procedure TRender.GetRay(aScreenX, aScreenY: Integer; out RayStart, RayEnd: TVector3f);
+var
+  PosX, PosY: Integer;
+  X,Y,Z: GLdouble;
+begin
+  //fViewport already contains viewport offsets
+  PosX := aScreenX;
+  PosY := fHeight - aScreenY; //In OpenGL Y axis is inverted and starts from bottom
+
+  //Take far coord
+  gluUnProject(PosX, PosY, 0, fModelview, fProjection, fViewport, @X, @Y, @Z);
+  RayStart.X := X;
+  RayStart.Y := Y;
+  RayStart.Z := Z;
+
+  gluUnProject(PosX, PosY, 1, fModelview, fProjection, fViewport, @X, @Y, @Z);
+  RayEnd.X := X;
+  RayEnd.Y := Y;
+  RayEnd.Z := Z;
 end;
 
 
