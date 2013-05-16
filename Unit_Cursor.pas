@@ -10,15 +10,18 @@ type
   //Ingame cursor that can grap pieces and move them around and across Ingot
   TPCursor = class
   private
+    fX: Integer;
+    fY: Integer;
     fMouseArea: TMouseArea;
-    PrevX, PrevY: Single;
+    fPrevX, fPrevY: Single;
     fPickedPiece: TPiece;
   public
-    X: Integer;
-    Y: Integer;
     CodeBelow: TColorCodeId;
     constructor Create;
     destructor Destroy; override;
+
+    property X: Integer read fX;
+    property Y: Integer read fY;
 
     procedure MouseDown(Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
     procedure MouseMove(Shift: TShiftState; X, Y: Integer);
@@ -52,8 +55,8 @@ end;
 
 procedure TPCursor.MouseDown(Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
 begin
-  PrevX := X;
-  PrevY := Y;
+  fPrevX := X;
+  fPrevY := Y;
   if Y < fRender.Height - DECK_HEIGHT then
     fMouseArea := maIngot
   else
@@ -74,19 +77,19 @@ end;
 
 procedure TPCursor.MouseMove(Shift: TShiftState; X, Y: Integer);
 begin
-  X := X;
-  Y := Y;
-  CodeBelow := fRender.CodeBelow(X, Y);
+  fX := X;
+  fY := Y;
+  CodeBelow := fRender.CodeBelow(fX, fY);
 
   if not (ssLeft in Shift) then
-    if Y < fRender.Height - DECK_HEIGHT then
+    if fY < fRender.Height - DECK_HEIGHT then
       fMouseArea := maIngot
     else
       fMouseArea := maDeck;
 
   case fMouseArea of
     maIngot:  if (ssLeft in Shift) and (CodeBelow.Code in [ccNone, ccIngot]) then
-                fIngot.Rotate(-(PrevX - X)/1, -(PrevY - Y)/1);
+                fIngot.Rotate(-(fPrevX - fX)/1, -(fPrevY - fY)/1);
     maDeck:   if Shift = [] then
               begin
                 if CodeBelow.Code = ccPiece then
@@ -96,8 +99,8 @@ begin
               end;
   end;
 
-  PrevX := X;
-  PrevY := Y;
+  fPrevX := fX;
+  fPrevY := fY;
 end;
 
 
@@ -108,11 +111,10 @@ begin
   glPushMatrix;
 
     glScalef(150, 150, 150);
-    glTranslatef(0.5, 0, 0);
 
     if fPickedPiece <> nil then
     begin
-      glTranslatef(X, Y, 0);
+      glTranslatef(fX, fY, 0);
       fPickedPiece.Render2D;
     end;
 
