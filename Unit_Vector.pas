@@ -32,6 +32,7 @@ type
   function Vertice(X, Y, Z, nx, ny, nz: Single): TVertice;
   function Poly3(A,B,C: Integer): TPoly3;
 
+  function VectorLengthSqr(const A: TVector3f): Single;
   function VectorAdd(const A,B: TVector3f): TVector3f;
   function VectorSubtract(const A,B: TVector3f): TVector3f;
   function VectorScale(const A: TVector3f; Scale: Single): TVector3f;
@@ -88,6 +89,12 @@ begin
 end;
 
 
+function VectorLengthSqr(const A: TVector3f): Single;
+begin
+  Result := Sqr(A.X) + Sqr(A.Y) + Sqr(A.Z);
+end;
+
+
 function VectorAdd(const A,B: TVector3f): TVector3f;
 begin
   Result.X := A.X + B.X;
@@ -109,6 +116,21 @@ begin
   Result.X := A.X * Scale;
   Result.Y := A.Y * Scale;
   Result.Z := A.Z * Scale;
+end;
+
+
+function VectorNormalize(const A: TVector3f): TVector3f;
+var
+  Scale: Single;
+begin
+  Scale := Sqrt(VectorLengthSqr(A));
+
+  if Scale = 0 then
+    Scale := 1;
+
+  Result.X := A.X / Scale;
+  Result.Y := A.Y / Scale;
+  Result.Z := A.Z / Scale;
 end;
 
 
@@ -164,7 +186,7 @@ begin
       if T > 0 then
       begin
         aPoint := VectorCombine(aRayStart, aRayVector, T);
-        aNormal := VectorCrossProduct(V1, V2);
+        aNormal := VectorNormalize(VectorCrossProduct(V1, V2));
         Result := True;
       end;
     end;

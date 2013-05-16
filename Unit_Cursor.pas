@@ -10,8 +10,8 @@ type
   //Ingame cursor that can grap pieces and move them around and across Ingot
   TPCursor = class
   private
-    fX: Integer;
-    fY: Integer;
+    fPosX: Integer;
+    fPosY: Integer;
     fMouseArea: TMouseArea;
     fPrevX, fPrevY: Single;
     fPickedPiece: TPiece;
@@ -23,8 +23,8 @@ type
     constructor Create;
     destructor Destroy; override;
 
-    property X: Integer read fX;
-    property Y: Integer read fY;
+    property PosX: Integer read fPosX;
+    property PosY: Integer read fPosY;
 
     procedure MouseDown(Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
     procedure MouseMove(Shift: TShiftState; X, Y: Integer);
@@ -58,9 +58,13 @@ end;
 
 procedure TPCursor.MouseDown(Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
 begin
-  fPrevX := X;
-  fPrevY := Y;
-  if Y < fRender.Height - DECK_HEIGHT then
+  fPosX := X;
+  fPosY := Y;
+
+  fPrevX := fPosX;
+  fPrevY := fPosY;
+
+  if fPosY < fRender.Height - DECK_HEIGHT then
     fMouseArea := maIngot
   else
     fMouseArea := maDeck;
@@ -82,12 +86,12 @@ procedure TPCursor.MouseMove(Shift: TShiftState; X, Y: Integer);
 var
   RayStart, RayEnd: TVector3f;
 begin
-  fX := X;
-  fY := Y;
-  CodeBelow := fRender.CodeBelow(fX, fY);
+  fPosX := X;
+  fPosY := Y;
+  CodeBelow := fRender.CodeBelow(fPosX, fPosY);
 
   if not (ssLeft in Shift) then
-    if fY < fRender.Height - DECK_HEIGHT then
+    if fPosY < fRender.Height - DECK_HEIGHT then
       fMouseArea := maIngot
     else
       fMouseArea := maDeck;
@@ -95,11 +99,11 @@ begin
   case fMouseArea of
     maIngot:  begin
                 if (ssLeft in Shift) and (CodeBelow.Code in [ccNone, ccIngot]) then
-                  fIngot.Rotate(-(fPrevX - fX)/1, -(fPrevY - fY)/1);
+                  fIngot.Rotate(-(fPrevX - fPosX)/1, -(fPrevY - fPosY)/1);
 
                 if (CodeBelow.Code = ccIngot) then
                 begin
-                  fRender.GetRay(fX, fY, RayStart, RayEnd);
+                  fRender.GetRay(fPosX, fPosY, RayStart, RayEnd);
                   fIngot.RayIntersect(RayStart, RayEnd, fIngotPoint, fIngotNormal);
                 end;
               end;
@@ -113,8 +117,8 @@ begin
               end;
   end;
 
-  fPrevX := fX;
-  fPrevY := fY;
+  fPrevX := fPosX;
+  fPrevY := fPosY;
 end;
 
 
@@ -127,10 +131,10 @@ begin
   begin
     if fPickedPiece = nil then Exit;
 
-    fRender.Switch(rmDeck);
+    fRender.Switch(rm2D);
     glPushMatrix;
 
-      glTranslatef(fX, fY, 0);
+      glTranslatef(fPosX, fPosY, 0);
       glScalef(150, 150, 150);
       fPickedPiece.Render2D;
 
@@ -141,7 +145,7 @@ begin
     begin
       fRender.Switch(rm3D);
 
-      V := VectorAdd(fIngotPoint, VectorScale(fIngotNormal, 1));
+      V := VectorAdd(fIngotPoint, VectorScale(fIngotNormal, 0.25));
       glColor4f(1,1,0,1);
       glBegin(GL_LINES);
         glVertex3fv(@fIngotPoint);

@@ -1,14 +1,16 @@
 unit Unit_Ingot;
 interface
-uses dglOpenGL, Unit_Vector;
+uses dglOpenGL, Math, Unit_Vector;
 
 type
   TIngot = class
   private
     fVerts: array of TVertice;
     fPolys: array of TPoly3;
+    fWires: array of array [0..1] of Integer;
     fVtxBuf: GLuint;
-    fIndBuf: GLuint;
+    fPolyBuf: GLuint;
+    fWireBuf: GLuint;
 
     fX: Single;
     fY: Single;
@@ -40,14 +42,16 @@ begin
   inherited;
 
   glGenBuffers(1, @fVtxBuf);
-  glGenBuffers(1, @fIndBuf);
+  glGenBuffers(1, @fPolyBuf);
+  glGenBuffers(1, @fWireBuf);
 end;
 
 
 destructor TIngot.Destroy;
 begin
   glDeleteBuffers(1, @fVtxBuf);
-  glDeleteBuffers(1, @fIndBuf);
+  glDeleteBuffers(1, @fPolyBuf);
+  glDeleteBuffers(1, @fWireBuf);
 
   inherited;
 end;
@@ -56,10 +60,12 @@ end;
 procedure TIngot.RayIntersect(aRay, aRayVect: TVector3f; out aPoint, aNormal: TVector3f);
 var
   I: Integer;
-  A,B,C: TVector3f;
+  A,B,C, Point, Normal: TVector3f;
+  BestDist, NewDist: Single;
 begin
   aNormal := Vector3(0,0,0);
 
+  BestDist := MaxSingle;
   for I := Low(fPolys) to High(fPolys) do
   begin
     A.X := fVerts[fPolys[I][0]].X;
@@ -72,17 +78,24 @@ begin
     C.Y := fVerts[fPolys[I][2]].Y;
     C.Z := fVerts[fPolys[I][2]].Z;
 
-    if RayTriangleIntersect(aRay, aRayVect, A, B, C, aPoint, aNormal) then
-      Exit;
+    if RayTriangleIntersect(aRay, aRayVect, A, B, C, Point, Normal) then
+    begin
+      NewDist := VectorLengthSqr(VectorSubtract(aRay, Point));
+      if NewDist < BestDist then
+      begin
+        BestDist := NewDist;
+        aPoint := Point;
+        aNormal := Normal;
+      end;
+    end;
   end;
-
 end;
 
 
 procedure TIngot.Init;
 const
-  HeightDiv = 2;
-  RadiusDiv = 4;
+  HeightDiv = 12;
+  RadiusDiv = 14;
 var
   I,K,J: Integer;
   Ang,X,Y,Z: Single;
@@ -136,9 +149,41 @@ begin
     Off := 1 + (I + HeightDiv-1) * RadiusDiv;
     for K := 0 to RadiusDiv - 1 do
     begin
-      fPolys[J] := Poly3(Off + K, Off + RadiusDiv + K, Off + (K + 1) mod RadiusDiv);
+      fPolys[J] := Poly3(Off + K, Off + (K + 1) mod RadiusDiv, Off + RadiusDiv + K);
       Inc(J);
       fPolys[J] := Poly3(Off + RadiusDiv + K, Off + (K + 1) mod RadiusDiv, Off + RadiusDiv + (K + 1) mod RadiusDiv);
+      Inc(J);
+    end;
+  end;
+
+  SetLength(fWires, (HeightDiv - 1) * 2 * RadiusDiv * 2 + RadiusDiv * 2);
+
+  //Caps
+  J := 0;
+  for K := 0 to RadiusDiv - 1 do
+  begin
+    fWires[J,0] := 0;
+    fWires[J,1] := 1 + K;
+    Inc(J);
+  end;
+  Off := 1 + (HeightDiv * 2 - 2) * RadiusDiv;
+  for K := 0 to RadiusDiv - 1 do
+  begin
+    fWires[J,0] := Off + RadiusDiv;
+    fWires[J,1] := Off + K;
+    Inc(J);
+  end;
+
+  for I := -HeightDiv+1 to HeightDiv-2 do
+  begin
+    Off := 1 + (I + HeightDiv-1) * RadiusDiv;
+    for K := 0 to RadiusDiv - 1 do
+    begin
+      fWires[J,0] := Off + K;
+      fWires[J,1] := Off + (K + 1) mod RadiusDiv;
+      Inc(J);
+      fWires[J,0] := Off + K;
+      fWires[J,1] := Off + RadiusDiv + K;
       Inc(J);
     end;
   end;
@@ -146,8 +191,11 @@ begin
   glBindBuffer(GL_ARRAY_BUFFER, fVtxBuf);
   glBufferData(GL_ARRAY_BUFFER, Length(fVerts) * SizeOf(TVertice), @fVerts[0].X, GL_STREAM_DRAW);
 
-  glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, fIndBuf);
+  glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, fPolyBuf);
   glBufferData(GL_ELEMENT_ARRAY_BUFFER, Length(fPolys) * SizeOf(fPolys[0]), @fPolys[0,0], GL_STREAM_DRAW);
+
+  glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, fWireBuf);
+  glBufferData(GL_ELEMENT_ARRAY_BUFFER, Length(fWires) * SizeOf(fWires[0]), @fWires[0,0], GL_STREAM_DRAW);
 end;
 
 
@@ -173,11 +221,11 @@ end;
 
 
 procedure TIngot.Render;
-  procedure SetRenderColor;
+  procedure SetRenderColor(R,G,B: Single);
   begin
     if fRender.IsNormal then
     begin
-      glColor3f(0.6, 0.7, 0.6);
+      glColor4f(R, G, B, 1);
     end
     else
     begin
@@ -189,10 +237,10 @@ begin
   glRotatef(fHead, 0, 1, 0);
   glTranslatef(fX, fY, 0);
 
-  SetRenderColor;
+  SetRenderColor(0.6, 0.7, 0.6);
 
   glBindBuffer(GL_ARRAY_BUFFER, fVtxBuf);
-  glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, fIndBuf);
+  glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, fPolyBuf);
 
   //Setup vertex and UV layout and offsets
   glEnableClientState(GL_VERTEX_ARRAY);
@@ -209,6 +257,19 @@ begin
 
   glDisableClientState(GL_VERTEX_ARRAY);
   glDisableClientState(GL_NORMAL_ARRAY);
+
+
+  SetRenderColor(0, 0, 0);
+  glBindBuffer(GL_ARRAY_BUFFER, fVtxBuf);
+  glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, fWireBuf);
+
+  glEnableClientState(GL_VERTEX_ARRAY);
+  glVertexPointer(3, GL_FLOAT, SizeOf(TVertice), Pointer(0));
+
+  //Here and above OGL requests Pointer, but in fact it's just a number (offset within Array)
+  glDrawElements(GL_LINES, Length(fWires) * Length(fWires[0]), GL_UNSIGNED_INT, Pointer(0));
+
+  glDisableClientState(GL_VERTEX_ARRAY);
 end;
 
 

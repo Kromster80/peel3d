@@ -54,7 +54,7 @@ var
   Code: TColorCodeId;
 begin
   Code := fCursor.CodeBelow;
-  Label_String.Caption := Format('X%d:Y%d %s - %d', [fCursor.X, fCursor.Y, CodeString[Code.Code], Code.Id]);
+  Label_String.Caption := Format('X%d:Y%d %s - %d', [fCursor.PosX, fCursor.PosY, CodeString[Code.Code], Code.Id]);
 end;
 
 
