@@ -94,8 +94,8 @@ end;
 
 procedure TIngot.Init;
 const
-  HeightDiv = 12;
-  RadiusDiv = 14;
+  HeightDiv = 6;
+  RadiusDiv = 12;
 var
   I,K,J: Integer;
   Ang,X,Y,Z: Single;

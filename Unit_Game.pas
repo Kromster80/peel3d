@@ -112,7 +112,7 @@ begin
   fRender.IsNormal := True;
   fRender.BeginFrame;
 
-  fSession.Render;
+  fSession.Render(rpFrame);
 
   fRender.Switch(rm2D);
   fUserInterface.Render;
@@ -123,7 +123,7 @@ begin
 
   fRender.IsNormal := False;
   fRender.BeginFrame;
-  fSession.Render;
+  fSession.Render(rpSelection);
 
   if SHOW_SELECTION_BUFFER then
     fRender.EndFrame;

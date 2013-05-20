@@ -141,17 +141,17 @@ begin
     glPopMatrix;
   end;
 
-    if fIngotNormal.Y <> 0 then
-    begin
-      fRender.Switch(rm3D);
+  if fIngotNormal.Y <> 0 then
+  begin
+    fRender.Switch(rm3D);
 
-      V := VectorAdd(fIngotPoint, VectorScale(fIngotNormal, 0.25));
-      glColor4f(1,1,0,1);
-      glBegin(GL_LINES);
-        glVertex3fv(@fIngotPoint);
-        glVertex3fv(@V);
-      glEnd;
-    end;
+    V := VectorAdd(fIngotPoint, VectorScale(fIngotNormal, 0.25));
+    glColor4f(1,1,0,1);
+    glBegin(GL_LINES);
+      glVertex3fv(@fIngotPoint);
+      glVertex3fv(@V);
+    glEnd;
+  end;
 end;
 
 

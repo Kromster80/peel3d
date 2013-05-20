@@ -5,6 +5,7 @@ uses Classes, Controls, dglOpenGL, KromOGLUtils, KromUtils, Math, Windows, SysUt
 
 type
   TRenderMode = (rm2D, rmDeck, rm3D);
+  TRenderPass = (rpFrame, rpSelection);
 
   TRender = class
   private

@@ -1,11 +1,10 @@
 unit Unit_Session;
 interface
 uses Controls, Classes, dglOpenGL,
-  Unit_Cursor, Unit_Deck, Unit_Ingot, Unit_Pieces, Unit_Defaults;
+  Unit_Cursor, Unit_Deck, Unit_Ingot, Unit_Pieces, Unit_Defaults, Unit_Render;
 
 
 type
-
   TSession = class
   private
   public
@@ -14,13 +13,11 @@ type
     procedure New;
     procedure MouseDown(Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
     procedure MouseMove(Shift: TShiftState; X, Y: Integer);
-    procedure Render;
+    procedure Render(aPass: TRenderPass);
   end;
 
 
 implementation
-uses
-  Unit_Render;
 
 
 { TSession }
@@ -62,7 +59,7 @@ begin
 end;
 
 
-procedure TSession.Render;
+procedure TSession.Render(aPass: TRenderPass);
 begin
   fRender.Switch(rm3D);
   fIngot.Render;
@@ -70,7 +67,8 @@ begin
   fRender.Switch(rmDeck);
   fDeck.Render;
 
-  fCursor.Render;
+  if aPass <> rpSelection then
+    fCursor.Render;
 end;
 
 
